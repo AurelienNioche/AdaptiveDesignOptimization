@@ -88,20 +88,24 @@ class ModelComparison:
         self.init_lp = self.lp.copy()
 
     def update(self, d_idx, resp):
-        sum_sum = np.zeros(self.n_model)
+        mll = np.zeros(self.n_model)
         for i, m in enumerate(self.m):
             log_lik_r = m.log_lik[d_idx, :, int(resp)].flatten()
-            sum_lp_llr = m.lp + log_lik_r
-            sum_sum[i] = logsumexp(sum_lp_llr)
+            mll_i = m.lp + log_lik_r
+            mll[i] = logsumexp(mll_i)
 
             # update lp of the model
-            new_lp = sum_lp_llr - logsumexp(sum_lp_llr)
+            new_lp = mll_i - logsumexp(mll_i)
             m.lp = new_lp
 
         for i in range(self.n_model):
-            log_bf = sum_sum - sum_sum[i]
+            log_bf = mll - mll[i]
             denom = logsumexp(self.init_lp + log_bf)
             self.lp[i] = self.init_lp[i] - denom
+
+        print("d idx", d_idx)
+        print("resp", resp)
+        print("post", np.exp(self.lp))
 
     def reset(self):
         lp = np.ones(self.n_model)
@@ -163,7 +167,7 @@ def exp_decay(x, alpha):
 
 
 def power_law(x, alpha):
-    return x**(-alpha)
+    return (x+1)**(-alpha)
 
 
 def main():
@@ -206,6 +210,9 @@ def main():
 
         p = np.exp(m.lp)
         means['random'][:, t] = p
+
+    print()
+    print("ADO *****************************************************")
 
     # ADO ---------------------------------------------------------- #
     m = ADO(
