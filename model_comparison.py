@@ -99,9 +99,12 @@ class ModelComparison:
             m.lp = new_lp
 
         for i in range(self.n_model):
-            log_bf = mll - mll[i]
-            denom = logsumexp(self.init_lp + log_bf)
-            self.lp[i] = self.init_lp[i] - denom
+            self.lp[i] = self.init_lp[i] \
+                - logsumexp(self.init_lp + mll - mll[i])
+        # for i in range(self.n_model):
+        #     log_bf = mll - mll[i]
+        #     denom = logsumexp(self.init_lp + log_bf)
+        #     self.lp[i] = self.init_lp[i] - denom
 
         print("d idx", d_idx)
         print("resp", resp)
