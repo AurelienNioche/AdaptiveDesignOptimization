@@ -10,16 +10,29 @@ def p_obs(x, alpha):
     return x**(-alpha)
 
 
-# def illustration_model():
+def illustration_model():
 
+    alpha_list = (2e-07, 0.001, 0.01, 0.02, 0.025)
+    n = len(alpha_list)
+    fig, ax = plt.subplots()
 
+    c = np.linspace(0, 1, n)
+    cmap = plt.get_cmap('winter')
+
+    x = np.arange(1000)
+    for i, alpha in enumerate(alpha_list):
+        with np.errstate(divide="ignore"):
+            ax.plot(p_obs(x=x, alpha=alpha), label=r"$\alpha = " + f"{alpha}$",
+                    color=cmap(c[i]))
+    plt.legend()
+    plt.show()
 
 
 def main():
 
     np.random.seed(12)
 
-    param = (2e-07, 0.025)
+    param = (0.01, )
 
     bounds_design = 1, 1000
     n_design = 100
@@ -27,7 +40,7 @@ def main():
 
     bounds_param = (2e-07, 0.025)
     n_grid_param = 100
-    grid = np.atleast_2d(np.geomspace(*bounds_param, n_grid_param)).T
+    grid = np.atleast_2d(np.linspace(*bounds_param, n_grid_param)).T
     n_param_set, n_param = grid.shape
 
     n_trial = 1000
@@ -153,5 +166,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # illustration_model()
+    illustration_model()
     main()
