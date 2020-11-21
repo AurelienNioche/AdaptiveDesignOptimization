@@ -28,19 +28,19 @@ class Model:
                 *(m(*b, n_grid) for m, b in zip(methods, bounds_grid)))))
 
         # Log-lik
-        self.n_param_set, n_param = self.grid.shape
+        n_param_set, n_param = self.grid.shape
         n_design = len(design)
-        p_one = np.zeros((n_design, self.n_param_set))
+        p_one = np.zeros((n_design, n_param_set))
         for i, d in enumerate(design):
             p_one[i, :] = p_obs(d, self.grid.T).flatten()
         p_zero = 1 - p_one
-        p = np.zeros((n_design, self.n_param_set, 2))
+        p = np.zeros((n_design, n_param_set, 2))
         p[:, :, 0] = p_zero
         p[:, :, 1] = p_one
         self.log_lik = np.log(p + np.finfo(np.float).eps)
 
         # Prior
-        lp = np.ones(self.n_param_set)
+        lp = np.ones(n_param_set)
         self.lp = lp - logsumexp(lp)
 
     def update(self, d_idx, resp):
@@ -60,7 +60,8 @@ class Model:
         return ep, sdp
 
     def reset(self):
-        lp = np.ones(self.n_param_set)
+        n_param_set, n_param = self.grid.shape
+        lp = np.ones(n_param_set)
         self.lp = lp - logsumexp(lp)
 
 
@@ -129,39 +130,39 @@ class ADO(ModelComparison):
 
     def get_design(self):
 
-        mll = np.zeros((self.n_model, self.n_design, 2))  # 2: n_resp
+        mll = np.zeros((self.n_model, self.n_design, 2)) # 2: n_resp
         for i, m in enumerate(self.m):
             extended_lp = np.expand_dims(np.expand_dims(m.lp, 0), -1)
             mll[i] = logsumexp(m.log_lik + extended_lp, axis=1)
 
-        print("mll shape", mll.shape)
+        log_ratio = mll - logsumexp(mll + self.lp, axis=0)
+        # shape (num_model, num_design, num_response)
 
-        log_like_prior = np.zeros((self.n_model, self.n_design, self.m[0].n_param_set, 2))
+        u = np.zeros(self.n_design)
+
         for i, m in enumerate(self.m):
             extended_lp = np.expand_dims(np.expand_dims(m.lp, 0), -1)
-            log_like_prior[i] = m.log_lik + extended_lp
+            ll = m.log_lik + extended_lp
+            u += np.exp(self.lp[i]) \
+                   * np.sum(np.sum(np.exp(ll), axis=1) * log_ratio[i, :, :], axis=-1)
+            # shape (num_design, num_param_set, num_resp
 
-        log_sum_ml = logsumexp(mll + self.lp, axis=0)
-        # shape (num_design, num_response)
-        print("log_sum_ml shape", log_sum_ml.shape)
+        d_idx = np.argmax(u)
 
-        u_design = np.zeros(self.n_design)
-        for d_idx in range(self.n_design):
-            u = 0
-            for i, m in enumerate(self.m):
-                u_m = 0
-                for j in range(m.n_param_set):
-                    for y in (0, 1):
-
-                        u_m += np.exp(
-                            mll[i, d_idx, y] - log_sum_ml[d_idx, y]
-                            + log_like_prior[i, d_idx, j, y])
-
-                    # shape (num_design, num_param_set, num_resp
-                u += np.exp(self.lp[i]) * u_m
-
-            u_design[d_idx] = u
-        d_idx = np.argmax(u_design)
+        # post = np.exp(self.lp)
+        #
+        # # Calculate the marginal log likelihood.
+        # extended_lp = np.expand_dims(np.expand_dims(self.lp, 0), -1)
+        # mll = logsumexp(self.log_lik + extended_lp, axis=1)
+        # # shape (num_design, num_response)
+        #
+        # # Calculate the marginal entropy and conditional entropy.
+        # ent_marg = -np.sum(np.exp(mll) * mll, -1)  # shape (num_designs,)
+        # ent_cond = np.sum(post * self.ent_obs, axis=1)  # shape (num_designs,)
+        #
+        # # Calculate the mutual information.
+        # mutual_info = ent_marg - ent_cond  # shape (num_designs,)
+        # d_idx = np.argmax(mutual_info)
 
         return d_idx
 
