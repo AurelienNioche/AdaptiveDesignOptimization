@@ -153,9 +153,8 @@ class ADO(ModelComparison):
                 for j in range(m.n_param_set):
                     for y in (0, 1):
 
-                        u_m += np.exp(
-                            mll[i, d_idx, y] - log_sum_ml[d_idx, y]
-                            + log_like_prior[i, d_idx, j, y])
+                        u_m += (mll[i, d_idx, y] - log_sum_ml[d_idx, y]) \
+                               * np.exp(log_like_prior[i, d_idx, j, y])
 
                     # shape (num_design, num_param_set, num_resp
                 u += np.exp(self.lp[i]) * u_m
