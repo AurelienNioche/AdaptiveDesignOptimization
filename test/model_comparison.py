@@ -165,23 +165,23 @@ class ADO(ModelComparison):
         return d_idx
 
 
-def exp_decay(x, alpha):
-    return np.exp(-alpha * x)
+def exp_decay(x, param):
+    return param[0]*np.exp(-param[1] * x)
 
 
-def power_law(x, alpha):
-    return (x+1)**(-alpha)
+def power_law(x, param):
+    return param[0] * (x+1)**(-param[1])
 
 
 def main():
     np.random.seed(12)
 
-    param = [0.01, ]
+    param = (0.8, 0.01, )
 
     bounds_design = 1, 1000
     n_design = 200
 
-    bounds_grid = (2e-07, 0.025)
+    bounds_grid = ((0., 1.), (2e-07, 0.025))
     n_grid = 100
 
     n_trial = 100
@@ -206,7 +206,7 @@ def main():
 
         d = design[d_idx]
 
-        p_r = exp_decay(x=d, alpha=param[0])
+        p_r = exp_decay(x=d, param=param)
         resp = p_r > np.random.random()
 
         m.update(d_idx=d_idx, resp=resp)
@@ -244,7 +244,7 @@ def main():
         d = design[d_idx]
         choices[t] = d_idx
 
-        p_r = exp_decay(x=d, alpha=param[0])
+        p_r = exp_decay(x=d, param=param)
         resp = p_r > np.random.random()
 
         m.update(d_idx=d_idx, resp=resp)
