@@ -133,3 +133,5 @@ dmypy.json
 
 # Fig folder
 fig/
+/test/random.csv
+/test/ado.csv
